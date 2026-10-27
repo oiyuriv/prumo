@@ -1,0 +1,58 @@
+# Busca as matérias a cada 2 horas, guarda o data/feed.json no repositório e publica o site.
+name: Atualizar feed
+
+on:
+  schedule:
+    - cron: '41 */2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['data/**']
+
+concurrency:
+  group: feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Buscar matérias
+        shell: pwsh
+        continue-on-error: true
+        run: ./tools/build-feed.ps1
+
+      - name: Guardar feed no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/feed.json
+          if git diff --cached --quiet; then
+            echo "Nada novo."
+          else
+            git commit -m "Feed atualizado em $(date -u '+%Y-%m-%d %H:%M') UTC"
+            git pull --rebase
+            git push
+          fi
+
+      - name: Montar site
+        run: |
+          mkdir -p _site
+          cp -r index.html sw.js manifest.webmanifest icons data _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
