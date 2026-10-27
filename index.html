@@ -446,6 +446,15 @@ main{position:relative;z-index:1;max-width:620px;margin:0 auto;padding-bottom:ca
 .in-tips{margin-top:26px;border-top:1px solid var(--line)}
 .in-tips div{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
 .in-tips div svg{color:var(--p)}
+.in-how{list-style:none;margin-top:22px;border-top:1px solid var(--line)}
+.in-how li{display:grid;grid-template-columns:20px 46px 1fr;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.in-how .n{font:600 10.5px/1 var(--mono);color:var(--p2);letter-spacing:.06em}
+.in-how .ic{width:46px;height:46px;border-radius:12px;background:var(--s2);border:1px solid var(--line2);display:grid;place-items:center;color:var(--text)}
+.in-how .ic.txt{font:600 9.5px/1 var(--sans);color:#5aa2ff;letter-spacing:-.02em;overflow:hidden}
+.in-how img.ic{padding:0;border:0;object-fit:cover}
+.in-how p{font-size:14px;line-height:1.45;color:var(--muted)}
+.in-how b{color:var(--text);font-weight:600}
+.in-note{margin-top:14px;font:500 10.5px/1.5 var(--mono);color:var(--faint);letter-spacing:.02em}
 .in-foot{margin-top:auto;padding-top:28px;display:flex;gap:10px}
 .in-foot .btn{flex:1;height:56px;font-size:16px;border-radius:14px}
 .in-foot .btn.ghost{flex:0 0 auto}
@@ -872,7 +881,9 @@ const ICON = {
   quote: '<svg class="q" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 2h20v20H2z"/><path d="M2 2l20 20M22 2L2 22"/></svg>',
   tap: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M7.5 15.5h9M7.5 11.5h9M7.5 7.5h5"/></svg>',
   right: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h16M14 7l5 5-5 5"/></svg>',
-  left: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12H5M10 7l-5 5 5 5"/></svg>'
+  left: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12H5M10 7l-5 5 5 5"/></svg>',
+  addsq: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M12 8v8M8 12h8"/></svg>',
+  dots: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>'
 };
 function face(v) {
   const eyes = v === 5
@@ -1235,7 +1246,7 @@ function renderMe() {
       <div class="set"><div><b>Mostrar traduzido</b><span>títulos e resumos de fora em português</span></div><button class="tgl${S.set.trans ? ' on' : ''}" data-act="set" data-k="trans" aria-label="Mostrar traduzido"></button></div>
     </div>
     <div class="panel"><h3>Seus dados</h3><p class="h">Ficam só neste aparelho. Faça um backup de vez em quando.</p>
-      <div class="btns"><button class="btn sm" data-act="export">Exportar backup</button><button class="btn sm" data-act="import">Importar</button><button class="btn sm" data-act="reintro">Rever boas-vindas</button><button class="btn sm warn" data-act="resetlearn">Zerar aprendizado</button></div></div>
+      <div class="btns"><button class="btn sm" data-act="export">Exportar backup</button><button class="btn sm" data-act="import">Importar</button>${isStandalone() ? '' : '<button class="btn sm" data-act="howinstall">Instalar no celular</button>'}<button class="btn sm" data-act="reintro">Rever boas-vindas</button><button class="btn sm warn" data-act="resetlearn">Zerar aprendizado</button></div></div>
     <p class="about">${FEED ? `${Object.keys(SRC).length} fontes · ${ITEMS.length} matérias · última coleta ${since(Date.parse(FEED.updated))}<br>` : ''}O feed se atualiza sozinho a cada 2 horas.<br>Prumo · arquitetura todo dia · feito de presente pra você</p>`;
   const inp = $('#nameInp');
   inp.addEventListener('input', () => { S.user.name = inp.value.trim().slice(0, 24); save(); const h = $('#v-me .prof h1'); if (h && h.firstChild) h.firstChild.nodeValue = userName() || 'Você'; const a = $('#v-me .avatar'); if (a) a.textContent = (userName() || 'P').charAt(0).toUpperCase(); feedDirty = true; });
@@ -1273,32 +1284,72 @@ function go(tab) {
 }
 
 // ---------- boas-vindas ----------
-let introStep = 0, introLikes = new Set(S.user.likes || []), introGoal = S.set.goal;
-function openIntro() {
+// No iPhone, o app da tela de início guarda os dados separado do Safari: por isso, quem abre pelo navegador
+// aprende primeiro a instalar, e as boas-vindas de verdade acontecem já dentro do app.
+const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const PLATFORM = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'ios' : /android/i.test(navigator.userAgent) ? 'android' : 'other';
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!$('#intro').hidden && introSteps[introStep] === 'install') renderIntro(); });
+let introStep = 0, introSteps = [], introLikes = new Set(S.user.likes || []), introGoal = S.set.goal;
+function openIntro(only) {
+  introSteps = only ? [only] : (isStandalone() ? [] : ['install']).concat(['hello', 'likes', 'goal']);
   introStep = 0; introLikes = new Set(S.user.likes || []); introGoal = S.set.goal;
   $('#intro').hidden = false; document.body.style.overflow = 'hidden';
   renderIntro();
 }
+function installHtml(alone) {
+  const nm = userName(), link = esc(location.host + location.pathname.replace(/index\.html$/, ''));
+  const head = alone ? `<h1>Coloque o Prumo na <em>tela de início</em>.</h1>` : `<h1>Olá${nm ? `, <em>${esc(nm)}</em>` : ''}.</h1>`;
+  const step = (n, ic, txt) => `<li><span class="n">${pad(n)}</span>${ic}<p>${txt}</p></li>`;
+  const appIcon = '<img class="ic" src="icons/icon-180.png" alt="">';
+  let lead, steps, extra = '';
+  if (PLATFORM === 'android') {
+    lead = 'Antes de começar, instale o Prumo no celular. Assim ele abre como um app, em tela cheia e com ícone próprio:';
+    steps = step(1, `<span class="ic">${ICON.dots}</span>`, 'No Chrome, toque nos <b>três pontinhos</b>, no canto de cima.')
+      + step(2, `<span class="ic">${ICON.addsq}</span>`, 'Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.')
+      + step(3, '<span class="ic txt">Instalar</span>', 'Confirme tocando em <b>Instalar</b>.')
+      + step(4, appIcon, 'Abra o <b>Prumo</b> pelo ícone novo. É ali que suas leituras ficam guardadas.');
+    if (installEvt) extra = `<button class="btn pri" data-act="iinstall">Instalar agora</button>`;
+  } else {
+    lead = PLATFORM === 'ios'
+      ? 'Antes de começar, coloque o Prumo na tela de início do iPhone. Assim ele abre como um app, em tela cheia e com ícone próprio. Leva uns 20 segundos:'
+      : `O Prumo foi feito pro celular. No iPhone, abra <b>${link}</b> no Safari e siga estes passos:`;
+    steps = step(1, `<span class="ic">${ICON.share}</span>`, 'No Safari, toque em <b>Compartilhar</b> (o quadrado com a seta pra cima). Se não estiver na barra, ele fica dentro dos <b>três pontinhos (•••)</b>, ao lado do endereço.')
+      + step(2, `<span class="ic">${ICON.addsq}</span>`, 'Role a lista para baixo e toque em <b>Adicionar à Tela de Início</b>.')
+      + step(3, '<span class="ic txt">Adicionar</span>', 'Se aparecer <b>Abrir como App Web</b>, deixe ligado. Depois toque em <b>Adicionar</b>.')
+      + step(4, appIcon, 'Feche o Safari e abra o <b>Prumo</b> pelo ícone novo na tela do celular. É ali que suas leituras ficam guardadas.');
+  }
+  const note = PLATFORM === 'android' ? '' : '<p class="in-note">Use o Safari: em outros navegadores essa opção pode não aparecer.</p>';
+  const foot = alone
+    ? `<div class="in-foot">${extra}<button class="btn" data-act="iclose">Voltar ao app</button></div>`
+    : `<div class="in-foot">${extra}<button class="btn" data-act="inext">${extra ? 'Agora não' : 'Continuar no navegador'}</button></div>`;
+  return `<div class="in-logo">${LOGO}</div><div class="dim">prancha ${pad(introStep)} · instalar no celular</div>${head}
+    <p class="lead">${lead}</p><ol class="in-how">${steps}</ol>${note}${foot}`;
+}
 function renderIntro() {
-  const steps = `<div class="in-steps">${[0, 1, 2].map(i => `<i class="${i <= introStep ? 'on' : ''}"></i>`).join('')}</div>`;
+  const kind = introSteps[introStep];
+  const steps = introSteps.length > 1 ? `<div class="in-steps">${introSteps.map((s, i) => `<i class="${i <= introStep ? 'on' : ''}"></i>`).join('')}</div>` : '';
+  const pn = pad(introStep);
   const nm = userName();
   let body;
-  if (introStep === 0) {
-    body = `<div class="in-logo">${LOGO}</div><div class="dim">prancha 00 · boas-vindas</div>
-      <h1>Olá${nm ? `, <em>${esc(nm)}</em>` : ''}.</h1>
+  if (kind === 'install') {
+    body = installHtml(introSteps.length === 1);
+  } else if (kind === 'hello') {
+    body = `<div class="in-logo">${LOGO}</div><div class="dim">prancha ${pn} · boas-vindas</div>
+      <h1>${introStep ? 'Bem-vindo ao <em>Prumo</em>.' : `Olá${nm ? `, <em>${esc(nm)}</em>` : ''}.`}</h1>
       <p class="lead">O Prumo junta, todo dia, o que sai de novo em arquitetura, urbanismo, paisagismo e interiores, em revistas, portais e periódicos do Brasil e de fora. O que vem em outra língua chega traduzido.</p>
       <div class="gift">${ICON.check} Feito de presente pra você.</div>
       <div class="in-field"><label for="inName">Como prefere ser chamado?</label><input id="inName" value="${esc(nm)}" maxlength="24" autocomplete="off" enterkeyhint="next" placeholder="Seu nome"></div>
       <div class="in-foot"><button class="btn pri" data-act="inext">Continuar</button></div>`;
-  } else if (introStep === 1) {
+  } else if (kind === 'likes') {
     const opts = TAG_ORDER.filter(t => t !== 'academia');
-    body = `<div class="dim">prancha 01 · interesses</div>
+    body = `<div class="dim">prancha ${pn} · interesses</div>
       <h1>Do que você gosta de <em>ler</em>?</h1>
       <p class="lead">Marque quantos quiser. Isso dá a partida no seu feed; depois ele aprende sozinho com as suas notas.</p>
       <div class="in-chips">${opts.map(t => `<button class="chip${introLikes.has(t) ? ' on' : ''}" data-act="inlike" data-tag="${t}">${esc(tagLabel(t))}</button>`).join('')}</div>
       <div class="in-foot"><button class="btn ghost" data-act="iback">Voltar</button><button class="btn pri" data-act="inext">${introLikes.size ? 'Continuar' : 'Pular'}</button></div>`;
   } else {
-    body = `<div class="dim">prancha 02 · ritmo</div>
+    body = `<div class="dim">prancha ${pn} · ritmo</div>
       <h1>Quantas leituras <em>por dia</em>?</h1>
       <p class="lead">Todo dia o Prumo separa essa quantidade de pranchas pra você. A meta aparece no topo e no seu perfil, e dá pra mudar quando quiser.</p>
       <div class="in-goal">${[3, 5, 7, 10].map(n => `<button class="${introGoal === n ? 'on' : ''}" data-act="ingoal" data-v="${n}">${n}<small>${n === 3 ? 'leve' : n === 5 ? 'normal' : n === 7 ? 'intenso' : 'maratona'}</small></button>`).join('')}</div>
@@ -1313,8 +1364,8 @@ function renderIntro() {
   $('#intro').scrollTop = 0;
   const inp = $('#inName');
   if (inp) {
-    inp.addEventListener('input', () => { S.user.name = inp.value.trim().slice(0, 24); save(); const h = $('#introBody h1'); if (h) h.innerHTML = `Olá${userName() ? `, <em>${esc(userName())}</em>` : ''}.`; });
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { inp.blur(); introStep = 1; renderIntro(); } });
+    inp.addEventListener('input', () => { S.user.name = inp.value.trim().slice(0, 24); save(); const h = $('#introBody h1'); if (h && !introStep) h.innerHTML = `Olá${userName() ? `, <em>${esc(userName())}</em>` : ''}.`; });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { inp.blur(); introStep++; renderIntro(); } });
   }
 }
 function finishIntro() {
@@ -1668,7 +1719,10 @@ function act(el, e) {
     case 'import': importData(); break;
     case 'reintro': openIntro(); break;
     case 'resetlearn': if (confirm('Zerar o que o feed aprendeu? Suas leituras, notas e guardados continuam.')) { S.prof = { tag: {}, src: {}, word: {}, lang: {} }; S.user.likes = []; S.daily = null; save(); feedDirty = true; renderMe(); toast('Aprendizado zerado.'); } break;
-    case 'inext': introStep = Math.min(2, introStep + 1); renderIntro(); break;
+    case 'inext': introStep = Math.min(introSteps.length - 1, introStep + 1); renderIntro(); break;
+    case 'iclose': $('#intro').hidden = true; document.body.style.overflow = ''; break;
+    case 'iinstall': if (installEvt) { installEvt.prompt(); installEvt.userChoice.then(c => { installEvt = null; if (c.outcome === 'accepted') toast('Prumo instalado. Abra pelo ícone novo.'); renderIntro(); }).catch(() => {}); } break;
+    case 'howinstall': openIntro('install'); break;
     case 'iback': introStep = Math.max(0, introStep - 1); renderIntro(); break;
     case 'inlike': { const t = d.tag; if (introLikes.has(t)) introLikes.delete(t); else introLikes.add(t); el.classList.toggle('on', introLikes.has(t)); const nb = $('#introBody [data-act="inext"]'); if (nb) nb.textContent = introLikes.size ? 'Continuar' : 'Pular'; break; }
     case 'ingoal': introGoal = +d.v; document.querySelectorAll('.in-goal button').forEach(b => b.classList.toggle('on', +b.dataset.v === introGoal)); break;
